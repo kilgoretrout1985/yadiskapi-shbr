@@ -2,14 +2,12 @@
 #   filename:  openapi.yaml
 #   timestamp: 2022-09-09T09:33:36+00:00
 
-from __future__ import annotations
-
 from datetime import datetime
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 from fastapi import FastAPI, Query
 
-from .models import (
+from yadiskapi.models import (
     Error,
     SystemItem,
     SystemItemHistoryResponse,
@@ -21,6 +19,15 @@ app = FastAPI(
     title='Yet Another Disk Open API',
     version='1.0',
 )
+
+
+@app.get("/check")
+def check_alive() -> Dict:
+    return {
+        'title': app.title,
+        'version': app.version,
+        'db_server_alive': False,
+    }
 
 
 @app.delete(
