@@ -1,0 +1,10 @@
+include LICENSE
+include CHANGELOG
+include README.md
+include requirements.txt
+include requirements.dev.txt
+include src/yadiskapi/py.typed
+# recursive-include docs *
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
