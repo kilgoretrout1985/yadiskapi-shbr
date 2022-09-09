@@ -9,5 +9,9 @@ Run `tox` command to check your project setup. Everything should be green at thi
 point.
 
 ```
-cd src/yadiskapi && uvicorn main:app --reload
+cd src/yadiskapi && python main.py && uvicorn main:app --reload
 ```
+
+`python main.py` is used to create initial db tables before first run. 
+
+Use `python main.py --drop-all` to drop (delete all!) and recreate db in case you need it.
