@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import Enum, unique
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
 
+@unique
 class SystemItemType(Enum):
     FILE = 'FILE'
     FOLDER = 'FOLDER'
@@ -15,10 +16,10 @@ class SystemItemType(Enum):
 class SystemItemBase(BaseModel):
     """Виртуальная модель только для наследования"""
     id: str = Field(..., description='Уникальный идентфикатор', example='элемент_1_4')
-    url: Optional[str] = Field(None, description='Ссылка на файл. Для папок поле равнно null.')
+    url: Optional[str] = Field(None, max_length=255, description='Ссылка на файл. Для папок поле равнно null.')
     parentId: Optional[str] = Field(None, description='id родительской папки', example='элемент_1_1')
     type: SystemItemType
-    size: Optional[int] = Field(None, description='Целое число, для папок поле должно содержать null.')
+    size: Optional[int] = Field(None, gt=0, description='Целое число, для папок поле должно содержать null.')
 
 
 class SystemItemImport(SystemItemBase):
@@ -115,7 +116,7 @@ class SystemItemHistoryUnit(SystemItemBase):
 
 class SystemItemHistoryResponse(BaseModel):
     items: List[SystemItemHistoryUnit] = Field(
-        [], description='История в произвольном порядке.'
+        default_factory=list, description='История в произвольном порядке.'
     )
 
 
