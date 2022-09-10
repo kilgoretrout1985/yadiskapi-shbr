@@ -37,7 +37,8 @@ class SystemItemImport(SystemItemBase):
 
 class SystemItem(SystemItemBase):
     """Модель объекта для возврата при запросе (из БД)"""
-    date: datetime = Field(...,
+    date: datetime = Field(
+        ...,
         description='Время последнего обновления элемента.',
         example='2022-05-28T21:12:01.000Z',
     )
@@ -99,10 +100,22 @@ class SystemItemImportRequest(BaseModel):
 class SystemItemHistoryUnit(SystemItemBase):
     date: datetime = Field(..., description='Время последнего обновления элемента.')
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "id": "элемент_1_4",
+                "url": "/file/url1",
+                "date": "2022-05-28T21:12:01.000Z",
+                "parentId": "элемент_1_1",
+                "size": 234,
+                "type": SystemItemType.FILE,
+            }
+        }
+
 
 class SystemItemHistoryResponse(BaseModel):
-    items: Optional[List[SystemItemHistoryUnit]] = Field(
-        None, description='История в произвольном порядке.'
+    items: List[SystemItemHistoryUnit] = Field(
+        [], description='История в произвольном порядке.'
     )
 
 
