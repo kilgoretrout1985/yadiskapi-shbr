@@ -34,7 +34,7 @@ if __name__ == "__main__":
         description = 'your description here',
         long_description = README,
         long_description_content_type = "text/markdown; charset=UTF-8",
-        # url = 'https://github.com/kilgoretrout1985/default-py-template',  # TODO: CHANGE THIS
+        url = 'https://github.com/kilgoretrout1985/yadiskapi-shbr',
         platforms = 'unix, linux, osx, cygwin, win32',
         classifiers = [
             'Intended Audience :: Developers',
