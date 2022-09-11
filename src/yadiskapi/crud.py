@@ -43,5 +43,17 @@ async def bulk_create_items(db: Connection, items: List[schemas.SystemItemImport
     return True
 
 
+async def delete_item(db: Connection, item_id: str) -> int:
+    # Удалением зависимых записей займется constraint ON DELETE CASCADE
+    query = """
+        WITH deleted AS(
+            DELETE FROM items WHERE id=:id RETURNING id
+        ) SELECT COUNT(*) AS cnt FROM deleted;
+    """
+    result = await db.fetch_one(query, values={"id": item_id})
+    # в cnt считаются только удаленные нами напрямую записи, по факту получается 0 или 1
+    return result['cnt']
+
+
 async def get_item(db: Connection, item_id: str):
     pass

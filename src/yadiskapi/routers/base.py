@@ -13,11 +13,18 @@ router = APIRouter(tags=["Базовые задачи"])
 
 @router.delete(
     '/delete/{id}',
-    response_model=None,
+    status_code=200,
     responses={'400': {'model': schemas.Error}, '404': {'model': schemas.Error}},
 )
-def delete_delete_id(id: str, date: datetime = ...) -> Union[None, schemas.Error]:
-    pass
+async def delete_delete_id(id: str, date: datetime = ..., db: Connection = Depends(get_db_conn)):
+    deleted = await crud.delete_item(db, id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    else:
+        return {
+            "code": 200,
+            "message": "Deleted successfully"
+        }
 
 
 @router.post(
@@ -31,8 +38,7 @@ async def post_imports(request: schemas.SystemItemImportRequest, db: Connection 
     try:
         await crud.bulk_create_items(db, request.items, update_date)
         return {"code": 200, "message": "Import was successful"}
-    except Exception:
-        # TODO: aiomisc log exception
+    except:
         raise HTTPException(status_code=400, detail="Validation Failed")
 
 
