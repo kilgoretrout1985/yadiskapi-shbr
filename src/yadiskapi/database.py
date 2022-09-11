@@ -51,7 +51,7 @@ async def init_models(delete_all=False):
                 CONSTRAINT items_pkey PRIMARY KEY (id),
                 CONSTRAINT "items_parentId_fkey" FOREIGN KEY ("parentId")
                     REFERENCES items (id) MATCH SIMPLE
-                    ON UPDATE NO ACTION
+                    ON UPDATE CASCADE
                     ON DELETE CASCADE
                     DEFERRABLE INITIALLY IMMEDIATE
             );
