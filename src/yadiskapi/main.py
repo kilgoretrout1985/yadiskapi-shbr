@@ -1,11 +1,15 @@
 from typing import Any, Dict
 
+from databases.core import Connection
 from fastapi import FastAPI, Depends
-from sqlalchemy.orm import Session
+from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
+from starlette.responses import JSONResponse
+from starlette import status
 
 from yadiskapi.routers import base, additional
 from yadiskapi.config import settings
-from yadiskapi.database import get_db
+from yadiskapi.database import get_db_conn, database
 
 
 app = FastAPI(
@@ -17,10 +21,29 @@ app.include_router(base.router)
 app.include_router(additional.router)
 
 
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc) -> JSONResponse:
+    return JSONResponse(
+        # yandex openapi uses 400 instead of 422 for bad request
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": jsonable_encoder(exc.errors())},
+    )
+
+
 @app.get("/check", tags=["Сервисные endpoint"])
-async def check_alive(db: Session = Depends(get_db)) -> Dict[str, Any]:
-    result = (await db.execute("SELECT 1 AS alive")).first()
-    db_alive = bool(result[0])
+async def check_alive(db: Connection = Depends(get_db_conn)) -> Dict[str, Any]:
+    result = (await db.fetch_one("SELECT 1 AS alive"))
+    db_alive = bool(result['alive'])  # type: ignore[index]
     return {
         'title': app.title,
         'version': app.version,
@@ -32,14 +55,8 @@ if __name__ == "__main__":
     import asyncio
     from typer import Typer
     from yadiskapi.database import init_models
-    # This is ugly, but I don't know how to fix this right now.
-    # If you do not import all models - it will not create corresponding 
-    # tables in the database.  
-    from yadiskapi.models import *
-    
 
     cli = Typer()
-
 
     @cli.command()
     def init_db(drop_all: bool = False):
@@ -48,6 +65,5 @@ if __name__ == "__main__":
         """
         asyncio.run(init_models(drop_all))
         print("DB tables created.")
-
 
     cli()

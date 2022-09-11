@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum, unique
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 @unique
@@ -21,10 +21,14 @@ class SystemItemBase(BaseModel):
     type: SystemItemType
     size: Optional[int] = Field(None, gt=0, description='Целое число, для папок поле должно содержать null.')
 
+    class Config:
+        use_enum_values = True
+
 
 class SystemItemImport(SystemItemBase):
     """Модель объекта при импорте"""
     class Config:
+
         schema_extra = {
             "example": {
                 "id": "элемент_1_4",
@@ -48,7 +52,6 @@ class SystemItem(SystemItemBase):
     )
 
     class Config:
-        orm_mode = True
         schema_extra = {
             "example": {
                 "id": "элемент_1_2",
@@ -97,6 +100,51 @@ class SystemItemImportRequest(BaseModel):
         description='Время обновления добавляемых элементов.',
         example='2022-05-28T21:12:01.000Z',
     )
+
+    # id каждого элемента является уникальным среди остальных элементов
+    # поле id не может быть равно null
+    @validator('items')
+    def check_items_ids(cls, v):
+        collected_ids = set()
+        for item in v:
+            if item.id is None:
+                raise ValueError('ID of imported element can not be null.')
+            if item.id in collected_ids:
+                raise ValueError('ID of imported elements should be unique.')
+            collected_ids.add(item.id)
+        return v
+
+    # родителем элемента может быть только папка
+    @validator('items')
+    def check_parent_ids(cls, v):
+        file_ids = set([i.id for i in v if i.type == 'FILE'])
+        for item in v:
+            if item.id == item.parentId:
+                raise ValueError("Item {} can't be self-parent.".format(item.id))
+            if item.parentId is not None and item.parentId in file_ids:
+                raise ValueError("Parent ({}) of an element ({}) can't be file.".format(item.parentId, item.id))
+        return v
+
+    # поле url при импорте папки всегда должно быть равно null
+    # поле size при импорте папки всегда должно быть равно null
+    @validator('items')
+    def check_folder_specific(cls, v):
+        for item in v:
+            if item.type == 'FOLDER':
+                if item.url is not None:
+                    raise ValueError("url field for folder {} should be null.".format(item.id))
+                if item.size is not None:
+                    raise ValueError("size field for folder {} should be null.".format(item.id))
+        return v
+
+    # TODO:
+    # дата обрабатывается согласно ISO 8601 (такой придерживается OpenAPI).
+    # Если дата не удовлетворяет данному формату, ответом будет код 400.
+    # @validator('updateDate')
+    # def check_update_date(cls, v):
+    #     if not check_datetime_is_iso8601(v):
+    #         raise ValueError("Date must be in ISO 8601 format.")
+    #     return v
 
 
 class SystemItemHistoryUnit(SystemItemBase):
