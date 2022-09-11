@@ -48,6 +48,7 @@ class SystemItem(SystemItemBase):
     )
 
     class Config:
+        orm_mode = True
         schema_extra = {
             "example": {
                 "id": "элемент_1_2",

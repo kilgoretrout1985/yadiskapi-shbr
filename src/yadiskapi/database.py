@@ -3,13 +3,8 @@ from sys import modules
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import (
-    Column, DateTime, Enum as PgEnum, ForeignKey, String, Table, 
-    BigInteger
-)
 
 from yadiskapi.config import settings
-from yadiskapi.schemas import SystemItemType
 
 
 engine = create_async_engine(
@@ -17,18 +12,6 @@ engine = create_async_engine(
     echo=settings.db_echo_flag
 )
 Base = declarative_base()
-
-
-items_table = Table(
-    'items',
-    Base.metadata,
-    Column('id', String, primary_key=True, autoincrement=False),
-    Column('url', String(255), nullable=True),
-    Column('parentId', String, ForeignKey('items.id', ondelete='CASCADE'), nullable=True),
-    Column('type', PgEnum(SystemItemType, name='type'), nullable=False),    
-    Column('size', BigInteger, nullable=True),
-    Column('date', DateTime, nullable=False)
-)
 
 
 async_session = sessionmaker(
@@ -52,9 +35,3 @@ async def init_models(delete_all=False):
         if delete_all:
             await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-
-
-if __name__ == "__main__":
-    # this shows CREATE TABLE sql without running it for debug purposes
-    from sqlalchemy.schema import CreateTable
-    print(CreateTable(items_table))
