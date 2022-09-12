@@ -18,7 +18,7 @@ app = FastAPI(
     version='1.0',
 )
 app.include_router(base.router)
-app.include_router(additional.router)
+# app.include_router(additional.router)
 
 
 @app.on_event("startup")
