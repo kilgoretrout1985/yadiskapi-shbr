@@ -21,7 +21,7 @@ IMPORT_BATCHES = [
                 "parentId": None
             }
         ],
-        "updateDate": "2022-02-01T12:00:00Z"
+        "updateDate": "2022-02-01T12:00:00+00:00"
     },
     {
         "items": [
@@ -45,7 +45,7 @@ IMPORT_BATCHES = [
                 "size": 256
             }
         ],
-        "updateDate": "2022-02-02T12:00:00Z"
+        "updateDate": "2022-02-02T12:00:00+00:00"
     },
     {
         "items": [
@@ -69,7 +69,7 @@ IMPORT_BATCHES = [
                 "size": 1024
             }
         ],
-        "updateDate": "2022-02-03T12:00:00Z"
+        "updateDate": "2022-02-03T12:00:00+00:00"
     },
     {
         "items": [
@@ -81,7 +81,7 @@ IMPORT_BATCHES = [
                 "size": 64
             }
         ],
-        "updateDate": "2022-02-03T15:00:00Z"
+        "updateDate": "2022-02-03T15:00:00+00:00"
     }
 ]
 
@@ -91,7 +91,7 @@ EXPECTED_TREE = {
     "size": 1984,
     "url": None,
     "parentId": None,
-    "date": "2022-02-03T15:00:00Z",
+    "date": "2022-02-03T15:00:00+00:00",
     "children": [
         {
             "type": "FOLDER",
@@ -99,7 +99,7 @@ EXPECTED_TREE = {
             "parentId": "069cb8d7-bbdd-47d3-ad8f-82ef4c269df1",
             "size": 1600,
             "url": None,
-            "date": "2022-02-03T15:00:00Z",
+            "date": "2022-02-03T15:00:00+00:00",
             "children": [
                 {
                     "type": "FILE",
@@ -107,7 +107,7 @@ EXPECTED_TREE = {
                     "id": "98883e8f-0507-482f-bce2-2fb306cf6483",
                     "parentId": "1cc0129a-2bfe-474c-9ee6-d435bf5fc8f2",
                     "size": 512,
-                    "date": "2022-02-03T12:00:00Z",
+                    "date": "2022-02-03T12:00:00+00:00",
                     "children": None,
                 },
                 {
@@ -116,7 +116,7 @@ EXPECTED_TREE = {
                     "id": "74b81fda-9cdc-4b63-8927-c978afed5cf4",
                     "parentId": "1cc0129a-2bfe-474c-9ee6-d435bf5fc8f2",
                     "size": 1024,
-                    "date": "2022-02-03T12:00:00Z",
+                    "date": "2022-02-03T12:00:00+00:00",
                     "children": None
                 },
                 {
@@ -125,7 +125,7 @@ EXPECTED_TREE = {
                     "id": "73bc3b36-02d1-4245-ab35-3106c9ee1c65",
                     "parentId": "1cc0129a-2bfe-474c-9ee6-d435bf5fc8f2",
                     "size": 64,
-                    "date": "2022-02-03T15:00:00Z",
+                    "date": "2022-02-03T15:00:00+00:00",
                     "children": None
                 }
             ]
@@ -136,7 +136,7 @@ EXPECTED_TREE = {
             "parentId": "069cb8d7-bbdd-47d3-ad8f-82ef4c269df1",
             "size": 384,
             "url": None,
-            "date": "2022-02-02T12:00:00Z",
+            "date": "2022-02-02T12:00:00+00:00",
             "children": [
                 {
                     "type": "FILE",
@@ -144,7 +144,7 @@ EXPECTED_TREE = {
                     "id": "863e1a7a-1304-42ae-943b-179184c077e3",
                     "parentId": "d515e43f-f3f6-4471-bb77-6b455017a2d2",
                     "size": 128,
-                    "date": "2022-02-02T12:00:00Z",
+                    "date": "2022-02-02T12:00:00+00:00",
                     "children": None
                 },
                 {
@@ -153,7 +153,7 @@ EXPECTED_TREE = {
                     "id": "b1d8fd7d-2ae3-47d5-b2f9-0f094af800d4",
                     "parentId": "d515e43f-f3f6-4471-bb77-6b455017a2d2",
                     "size": 256,
-                    "date": "2022-02-02T12:00:00Z",
+                    "date": "2022-02-02T12:00:00+00:00",
                     "children": None
                 }
             ]
@@ -236,7 +236,7 @@ def test_nodes():
 
 def test_updates():
     params = urllib.parse.urlencode({
-        "date": "2022-02-04T00:00:00Z"
+        "date": "2022-02-04T00:00:00+00:00"
     })
     status, response = request(f"/updates?{params}", json_response=True)
     assert status == 200, f"Expected HTTP status code 200, got {status}"
@@ -245,8 +245,8 @@ def test_updates():
 
 def test_history():
     params = urllib.parse.urlencode({
-        "dateStart": "2022-02-01T00:00:00Z",
-        "dateEnd": "2022-02-03T00:00:00Z"
+        "dateStart": "2022-02-01T00:00:00+00:00",
+        "dateEnd": "2022-02-03T00:00:00+00:00"
     })
     status, response = request(
         f"/node/{ROOT_ID}/history?{params}", json_response=True)
@@ -256,7 +256,7 @@ def test_history():
 
 def test_delete():
     params = urllib.parse.urlencode({
-        "date": "2022-02-04T00:00:00Z"
+        "date": "2022-02-04T00:00:00+00:00"
     })
     status, _ = request(f"/delete/{ROOT_ID}?{params}", method="DELETE")
     assert status == 200, f"Expected HTTP status code 200, got {status}"
