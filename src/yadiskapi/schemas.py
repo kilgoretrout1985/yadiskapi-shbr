@@ -172,3 +172,9 @@ class SystemItemHistoryResponse(BaseModel):
 class Error(BaseModel):
     code: int
     message: str
+
+
+class OkResponse(BaseModel):
+    """Базовый ответ (в стиле 200 ok)"""
+    code: int = 200
+    message: str = "OK"
