@@ -137,3 +137,7 @@ dmypy.json
 
 # internal/useless files created by macOS in each dir
 .DS_Store
+
+# files created by unit_test.py
+expected.json
+response.json
