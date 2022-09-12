@@ -10,6 +10,7 @@ from yadiskapi.config import settings
 # https://www.encode.io/databases/
 database = Database(
     settings.db_test_dsn if 'pytest' in modules else settings.db_dsn,
+    force_rollback=True if 'pytest' in modules else False,
     # TODO: tweak this pool settings and check that they correspond to pg docker container settings
     min_size=2,
     max_size=5
