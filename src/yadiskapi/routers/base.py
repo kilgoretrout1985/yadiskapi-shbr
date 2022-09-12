@@ -29,7 +29,7 @@ router = APIRouter(tags=["Базовые задачи"])
         }
     },
 )
-async def delete_delete_id(id: str, date: datetime = ..., db: Connection = Depends(get_db_conn)):
+async def delete_delete_id(id: str, date: datetime, db: Connection = Depends(get_db_conn)):
     deleted = await crud.delete_item(db, id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -57,7 +57,8 @@ async def post_imports(request: schemas.SystemItemImportRequest, db: Connection 
     try:
         await crud.bulk_create_items(db, request.items, update_date)
         return schemas.OkResponse(message="Import was successful")
-    except:
+    except Exception as e:
+        raise e
         raise HTTPException(status_code=400, detail="Validation Failed")
 
 

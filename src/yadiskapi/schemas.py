@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum, unique
 from typing import Any, List, Optional, Dict
 
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import BaseModel, Field, validator
 
 
 @unique
@@ -42,8 +42,8 @@ class SystemItemImport(SystemItemBase):
 
 class SystemItem(SystemItemBase):
     """Модель объекта для возврата при запросе (из БД)"""
-    # size Optional, но без None, потому что по всем описаниям он только 0+, 
-    # но в описании модели openapi для него nullable: true 
+    # size Optional, но без None, потому что по всем описаниям он только 0+,
+    # но в описании модели openapi для него nullable: true
     size: Optional[int] = Field(0, ge=0, description='Целое число, для папки - это суммарный размер всех элеметов.')
     date: datetime = Field(
         ...,
@@ -93,16 +93,6 @@ class SystemItem(SystemItemBase):
                 ]
             }
         }
-    
-    # размер папки - это суммарный размер всех её элементов. Если папка не содержит элементов, то размер равен 0. 
-    # При обновлении размера элемента, суммарный размер папки, которая содержит этот элемент, тоже обновляется.
-    @root_validator(pre=False, skip_on_failure=True)
-    def update_folder_size(cls, values):
-        if values.get('type') == 'FOLDER' and values.get('children'):
-            for child in values['children']:
-                if child.size:
-                    values['size'] += child.size
-        return values
 
     # для пустой папки поле children равно пустому массиву, а для файла равно null
     @validator('children', pre=True, always=True)

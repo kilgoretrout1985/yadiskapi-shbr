@@ -7,6 +7,41 @@ from databases.core import Connection
 from yadiskapi import schemas
 
 
+async def _folders_recount_stat(db: Connection) -> None:
+    """Пересчитываем размеры папок и их даты после добавления и удаления элементов"""
+    async with db.transaction():
+        query = """
+            WITH RECURSIVE cte AS (
+                SELECT id, "parentId", type, date,
+                       CASE WHEN type='FILE' THEN size ELSE 0 END AS size
+                    FROM items
+                UNION ALL
+                SELECT i2.id, i2."parentId", i2.type, GREATEST(cte.date, i2.date) as date,
+                       CASE WHEN i2.type='FILE' THEN i2.size + cte.size ELSE cte.size END AS size
+                    FROM cte
+                        INNER JOIN items i2 ON cte."parentId" = i2.id
+            )
+            SELECT id, "parentId", type, SUM(size) as new_size, MAX(date) as new_date
+                FROM cte
+                GROUP BY id, "parentId", type
+                HAVING cte.type = 'FOLDER';
+        """
+        # я не смог вытащить эти данные сразу в update, приходится пропускать
+        # через python
+        rows = await db.fetch_all(query=query)
+        values_all = []
+        for row in rows:
+            values_all.append({
+                'id': row['id'],
+                'new_size': int(row['new_size']),
+                'new_date': row['new_date']
+            })
+
+        for chunk in chunk_list(values_all, 1000):
+            query = "UPDATE items SET size=:new_size, date=:new_date WHERE id=:id;"
+            await db.execute_many(query=query, values=chunk)
+
+
 async def bulk_create_items(db: Connection, items: List[schemas.SystemItemImport], date: datetime) -> bool:
     async with db.transaction():
         # all fk constraints (including the one on parentId)
@@ -18,7 +53,7 @@ async def bulk_create_items(db: Connection, items: List[schemas.SystemItemImport
         # Реализуем требование openapi для /imports:
         # Элементы импортированные повторно обновляют текущие.
         #
-        # COALESCE тк при импорте папок size обязательно null и это надо валидировать, 
+        # COALESCE тк при импорте папок size обязательно null и это надо валидировать,
         # а потом во всех моделях, читаемых из БД, уже обязательно 0+
         query = """
             INSERT INTO items(id, url, "parentId", type, size, date)
@@ -41,19 +76,26 @@ async def bulk_create_items(db: Connection, items: List[schemas.SystemItemImport
                     'date': date
                 })
             await db.execute_many(query=query, values=values)
+
+    # вышли из транзакции, чтобы Postgres проверил дубликаты и валидность ключей
+    # т.к. нет смысла пересчитывать статистику, если все сломалось
+    await _folders_recount_stat(db)
+
     return True
 
 
 async def delete_item(db: Connection, item_id: str) -> int:
-    # Удалением зависимых записей займется constraint ON DELETE CASCADE
-    query = """
-        WITH deleted AS(
-            DELETE FROM items WHERE id=:id RETURNING id
-        ) SELECT COUNT(*) AS cnt FROM deleted;
-    """
-    result = await db.fetch_one(query, values={"id": item_id})
-    # в cnt считаются только удаленные нами напрямую записи, по факту получается 0 или 1
-    return result['cnt']
+    async with db.transaction():
+        # Удалением зависимых записей займется constraint ON DELETE CASCADE
+        query = """
+            WITH deleted AS(
+                DELETE FROM items WHERE id=:id RETURNING id
+            ) SELECT COUNT(*) AS cnt FROM deleted;
+        """
+        result = await db.fetch_one(query, values={"id": item_id})
+        await _folders_recount_stat(db)
+        # в cnt считаются только удаленные нами напрямую записи, по факту получается 0 или 1
+        return result['cnt']  # type: ignore[no-any-return, index]
 
 
 async def get_item(db: Connection, item_id: str) -> Union[schemas.SystemItem, None]:
@@ -75,7 +117,7 @@ async def get_item(db: Connection, item_id: str) -> Union[schemas.SystemItem, No
     for row in rows:
         obj = schemas.SystemItem(**dict(row))
         obj_map[obj.id] = obj
-    rows = None
+
     # формируем правильные связи children
     for _, obj in obj_map.items():
         # вторая проверка нужна, т.к. мы можем выбирать sub-tree, где у нашего
