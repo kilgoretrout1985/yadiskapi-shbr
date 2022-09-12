@@ -17,11 +17,12 @@ async def bulk_create_items(db: Connection, items: List[schemas.SystemItemImport
         # https://stackoverflow.com/a/1109198
         # Реализуем требование openapi для /imports:
         # Элементы импортированные повторно обновляют текущие.
-        # TODO: и лишь частично реализует требование
-        # Изменение типа элемента с папки на файл и с файла на папку не допускается.
+        #
+        # COALESCE тк при импорте папок size обязательно null и это надо валидировать, 
+        # а потом во всех моделях, читаемых из БД, уже обязательно 0+
         query = """
             INSERT INTO items(id, url, "parentId", type, size, date)
-                VALUES (:id, :url, :parentId, :type, :size, :date)
+                VALUES (:id, :url, :parentId, :type, COALESCE(:size, 0), :date)
             ON CONFLICT (id) DO UPDATE
                 SET url = excluded.url,
                     "parentId" = excluded."parentId",
@@ -61,8 +62,8 @@ async def get_item(db: Connection, item_id: str) -> Union[schemas.SystemItem, No
             SELECT * FROM items i1
                 WHERE i1.id = :id
             UNION
-                SELECT i2.* FROM items i2
-                    INNER JOIN items_recur rec ON rec.id = i2."parentId"
+            SELECT i2.* FROM items i2
+                INNER JOIN items_recur rec ON rec.id = i2."parentId"
         ) SELECT * FROM items_recur;
     """
     rows = await db.fetch_all(query=query, values={'id': item_id})

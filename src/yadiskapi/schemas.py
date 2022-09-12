@@ -19,7 +19,6 @@ class SystemItemBase(BaseModel):
     url: Optional[str] = Field(None, max_length=255, description='Ссылка на файл. Для папок поле равнно null.')
     parentId: Optional[str] = Field(None, description='id родительской папки', example='элемент_1_1')
     type: SystemItemType
-    size: Optional[int] = Field(None, gt=0, description='Целое число, для папок поле должно содержать null.')
 
     class Config:
         use_enum_values = True
@@ -27,8 +26,9 @@ class SystemItemBase(BaseModel):
 
 class SystemItemImport(SystemItemBase):
     """Модель объекта при импорте"""
-    class Config:
+    size: Optional[int] = Field(None, gt=0, description='Целое число, для папок поле должно содержать null.')
 
+    class Config:
         schema_extra = {
             "example": {
                 "id": "элемент_1_4",
@@ -42,6 +42,9 @@ class SystemItemImport(SystemItemBase):
 
 class SystemItem(SystemItemBase):
     """Модель объекта для возврата при запросе (из БД)"""
+    # size Optional, но без None, потому что по всем описаниям он только 0+, 
+    # но в описании модели openapi для него nullable: true 
+    size: Optional[int] = Field(0, ge=0, description='Целое число, для папки - это суммарный размер всех элеметов.')
     date: datetime = Field(
         ...,
         description='Время последнего обновления элемента.',
@@ -96,8 +99,6 @@ class SystemItem(SystemItemBase):
     @root_validator(pre=False, skip_on_failure=True)
     def update_folder_size(cls, values):
         if values.get('type') == 'FOLDER' and values.get('children'):
-            if values['size'] is None:
-                values['size'] = 0
             for child in values['children']:
                 if child.size:
                     values['size'] += child.size
@@ -167,6 +168,7 @@ class SystemItemImportRequest(BaseModel):
 
 
 class SystemItemHistoryUnit(SystemItemBase):
+    size: Optional[int] = Field(0, ge=0, description='Целое число, для папки - это суммарный размер всех элеметов.')
     date: datetime = Field(..., description='Время последнего обновления элемента.')
 
     class Config:
