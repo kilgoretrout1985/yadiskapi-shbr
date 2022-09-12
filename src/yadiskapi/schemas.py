@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum, unique
-from typing import List, Optional
+from typing import Any, List, Optional, Dict
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, root_validator
 
 
 @unique
@@ -90,6 +90,25 @@ class SystemItem(SystemItemBase):
                 ]
             }
         }
+    
+    # размер папки - это суммарный размер всех её элементов. Если папка не содержит элементов, то размер равен 0. 
+    # При обновлении размера элемента, суммарный размер папки, которая содержит этот элемент, тоже обновляется.
+    @root_validator(pre=False, skip_on_failure=True)
+    def update_folder_size(cls, values):
+        if values.get('type') == 'FOLDER' and values.get('children'):
+            if values['size'] is None:
+                values['size'] = 0
+            for child in values['children']:
+                if child.size:
+                    values['size'] += child.size
+        return values
+
+    # для пустой папки поле children равно пустому массиву, а для файла равно null
+    @validator('children', pre=True, always=True)
+    def check_items_children(cls, v, values: Dict[str, Any]):
+        if not v and 'type' in values:  # values is a dict of previously validated fields
+            return None if values['type'] == 'FILE' else []
+        return v  # leave as is
 
 
 class SystemItemImportRequest(BaseModel):

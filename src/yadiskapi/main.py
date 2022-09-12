@@ -42,7 +42,7 @@ async def validation_exception_handler(request, exc) -> JSONResponse:
 
 @app.get("/check", tags=["Сервисные endpoint"])
 async def check_alive(db: Connection = Depends(get_db_conn)) -> Dict[str, Any]:
-    result = (await db.fetch_one("SELECT 1 AS alive"))
+    result = await db.fetch_one("SELECT 1 AS alive")
     db_alive = bool(result['alive'])  # type: ignore[index]
     return {
         'title': app.title,

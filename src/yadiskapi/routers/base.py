@@ -81,4 +81,7 @@ async def post_imports(request: schemas.SystemItemImportRequest, db: Connection 
     },
 )
 async def get_nodes_id(id: str, db: Connection = Depends(get_db_conn)) -> Union[schemas.SystemItem, schemas.Error]:
-    pass
+    item = await crud.get_item(db, id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
