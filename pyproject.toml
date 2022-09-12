@@ -8,6 +8,9 @@ testpaths = [
     "tests",
 ]
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
 
 [tool.mypy]
 mypy_path = "src"
