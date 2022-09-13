@@ -1,3 +1,4 @@
+from typing import Union
 from sys import modules
 
 from databases import Database
@@ -8,13 +9,28 @@ from yadiskapi.config import settings
 
 
 # https://www.encode.io/databases/
-database = Database(
-    settings.db_test_dsn if 'pytest' in modules else settings.db_dsn,
-    force_rollback=True if 'pytest' in modules else False,
-    # TODO: tweak this pool settings and check that they correspond to pg docker container settings
-    min_size=2,
-    max_size=5
-)
+def configure_database(my_force_rollback: Union[None, bool] = None) -> Database:
+    """
+    Хелпер для создания конфигурации БД. Нужен, т.к. есть 3 варианта использования:
+    1) к реальной БД, не использует принудительный откат транзакций в конце,
+    2) к тестовой БД во время тестов - использует,
+    3) к тестовой БД для первоначального создания таблиц перед тестами - НЕ использует.
+    """
+    if my_force_rollback is not None:
+        force_rollback = my_force_rollback
+    else:
+        force_rollback = True if 'pytest' in modules else False
+
+    return Database(
+        settings.db_test_dsn if 'pytest' in modules else settings.db_dsn,
+        force_rollback=force_rollback,
+        # TODO: tweak this pool settings and check that they correspond to pg docker container settings
+        min_size=2,
+        max_size=5
+    )
+
+
+database = configure_database()
 
 
 async def get_db_conn() -> Connection:  # type: ignore[misc]
@@ -23,8 +39,17 @@ async def get_db_conn() -> Connection:  # type: ignore[misc]
 
 
 async def init_models(delete_all=False):
-    await database.connect()
-    async with database.connection() as conn:
+    """
+    Функция для создания (и опциально для удаления старых) таблиц приложения
+    в тестовой и обычной БД. Вызывается: 1) из консольной команде перед запуском
+    веб-сервера, 2) из фикстуры pytest один раз перед запуском тестов.
+
+    Использует отдельный коннект к базе, чтобы даже из тестовой среды обойти
+    ограничение на откат всех транзакций в конце соединения.
+    """
+    one_time_db_conn = configure_database(my_force_rollback=False)
+    await one_time_db_conn.connect()
+    async with one_time_db_conn.connection() as conn:
         async with conn.transaction():
             if delete_all:
                 await conn.execute(query="DROP TABLE IF EXISTS items;")
@@ -58,5 +83,5 @@ async def init_models(delete_all=False):
                         DEFERRABLE INITIALLY IMMEDIATE
                 );
             """
-            await database.execute(query=query)
-    await database.disconnect()
+            await one_time_db_conn.execute(query=query)
+    await one_time_db_conn.disconnect()
