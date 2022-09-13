@@ -84,6 +84,6 @@ async def init_models(delete_all=False):
                 );
             """
             await one_time_db_conn.execute(query=query)
-            query = """CREATE INDEX items_parentId_fkey_idx ON items ("parentId");"""
+            query = """CREATE INDEX IF NOT EXISTS items_parentId_fkey_idx ON items ("parentId");"""
             await one_time_db_conn.execute(query=query)
     await one_time_db_conn.disconnect()
