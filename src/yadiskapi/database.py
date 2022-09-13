@@ -69,9 +69,9 @@ async def init_models(delete_all=False):
             query = """
                 CREATE TABLE IF NOT EXISTS items
                 (
-                    id character varying COLLATE pg_catalog."default" NOT NULL,
-                    url character varying(255) COLLATE pg_catalog."default",
-                    "parentId" character varying COLLATE pg_catalog."default",
+                    id character varying NOT NULL,
+                    url character varying(255),
+                    "parentId" character varying,
                     type type NOT NULL,
                     size bigint,
                     date timestamp with time zone NOT NULL,
@@ -83,5 +83,7 @@ async def init_models(delete_all=False):
                         DEFERRABLE INITIALLY IMMEDIATE
                 );
             """
+            await one_time_db_conn.execute(query=query)
+            query = """CREATE INDEX items_parentId_fkey_idx ON items ("parentId");"""
             await one_time_db_conn.execute(query=query)
     await one_time_db_conn.disconnect()
