@@ -61,8 +61,8 @@ async def post_imports(request: schemas.SystemItemImportRequest, db: Connection 
     try:
         await crud.bulk_create_items(db, request.items, update_date)
         return schemas.OkResponse(message="Import was successful")
-    except Exception as e:
-        raise e
+    except Exception:
+        # TODO: async logger needed to log this exception
         raise HTTPException(status_code=400, detail="Validation Failed")
 
 

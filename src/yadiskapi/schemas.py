@@ -189,11 +189,17 @@ class SystemItemHistoryResponse(BaseModel):
 
 
 class Error(BaseModel):
+    """Модель стандартного ответа с ошибкой"""
     code: int
     message: str
 
 
+class RichError(Error):
+    """Модель ответа с ошибкой и дополнительными данными"""
+    detail: List[Dict[str, Any]]
+
+
 class OkResponse(BaseModel):
-    """Базовый ответ (в стиле 200 ok)"""
+    """Базовый ответ, когда всё хорошо"""
     code: int = 200
     message: str = "OK"

@@ -3,14 +3,15 @@ from typing import Any, Dict
 from databases.core import Connection
 from fastapi import FastAPI, Depends
 from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.encoders import jsonable_encoder
-from starlette.responses import JSONResponse
+from fastapi.responses import ORJSONResponse, JSONResponse
 from starlette import status
-from fastapi.responses import ORJSONResponse
 
 from yadiskapi.routers import base
 from yadiskapi.config import settings
 from yadiskapi.database import get_db_conn, database
+from yadiskapi import schemas
 
 
 app = FastAPI(
@@ -38,7 +39,25 @@ async def validation_exception_handler(request, exc) -> JSONResponse:
     return JSONResponse(
         # yandex openapi uses 400 instead of 422 for bad request
         status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": jsonable_encoder(exc.errors())},
+        # мимикрируем под стандартную ошибку валидации, но оставляем полезный текст
+        content=jsonable_encoder(schemas.RichError(
+            code=400,
+            message="Validation Failed",
+            detail=exc.errors()
+        ))
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc) -> JSONResponse:
+    # это нужно фактически, чтобы переименовать поле detail в json-ответе
+    # (fastapi по умолчанию) в message (требование openapi проекта).
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=jsonable_encoder(schemas.Error(
+            code=exc.status_code,
+            message=str(exc.detail)
+        ))
     )
 
 
