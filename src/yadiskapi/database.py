@@ -25,37 +25,38 @@ async def get_db_conn() -> Connection:  # type: ignore[misc]
 async def init_models(delete_all=False):
     await database.connect()
     async with database.connection() as conn:
-        if delete_all:
-            await conn.execute(query="DROP TABLE IF EXISTS items;")
-            await conn.execute(query="DROP TYPE IF EXISTS type;")
+        async with conn.transaction():
+            if delete_all:
+                await conn.execute(query="DROP TABLE IF EXISTS items;")
+                await conn.execute(query="DROP TYPE IF EXISTS type;")
 
-        # опции IF NOT EXISTS нет при создании типов, поэтому просто пытаемся
-        # создать во вложенной транзакции и откатываем, если такой тип уже есть
-        transaction = await conn.transaction()
-        try:
-            query = """CREATE TYPE type AS ENUM ('FILE', 'FOLDER');"""
-            await conn.execute(query=query)
-        except asyncpg.exceptions.DuplicateObjectError:
-            await transaction.rollback()
-        else:
-            await transaction.commit()
+            # опции IF NOT EXISTS нет при создании типов, поэтому просто пытаемся
+            # создать во вложенной транзакции и откатываем, если такой тип уже есть
+            transaction = await conn.transaction()
+            try:
+                query = """CREATE TYPE type AS ENUM ('FILE', 'FOLDER');"""
+                await conn.execute(query=query)
+            except asyncpg.exceptions.DuplicateObjectError:
+                await transaction.rollback()
+            else:
+                await transaction.commit()
 
-        query = """
-            CREATE TABLE IF NOT EXISTS items
-            (
-                id character varying COLLATE pg_catalog."default" NOT NULL,
-                url character varying(255) COLLATE pg_catalog."default",
-                "parentId" character varying COLLATE pg_catalog."default",
-                type type NOT NULL,
-                size bigint,
-                date timestamp with time zone NOT NULL,
-                CONSTRAINT items_pkey PRIMARY KEY (id),
-                CONSTRAINT "items_parentId_fkey" FOREIGN KEY ("parentId")
-                    REFERENCES items (id) MATCH SIMPLE
-                    ON UPDATE CASCADE
-                    ON DELETE CASCADE
-                    DEFERRABLE INITIALLY IMMEDIATE
-            );
-        """
-        await database.execute(query=query)
+            query = """
+                CREATE TABLE IF NOT EXISTS items
+                (
+                    id character varying COLLATE pg_catalog."default" NOT NULL,
+                    url character varying(255) COLLATE pg_catalog."default",
+                    "parentId" character varying COLLATE pg_catalog."default",
+                    type type NOT NULL,
+                    size bigint,
+                    date timestamp with time zone NOT NULL,
+                    CONSTRAINT items_pkey PRIMARY KEY (id),
+                    CONSTRAINT "items_parentId_fkey" FOREIGN KEY ("parentId")
+                        REFERENCES items (id) MATCH SIMPLE
+                        ON UPDATE CASCADE
+                        ON DELETE CASCADE
+                        DEFERRABLE INITIALLY IMMEDIATE
+                );
+            """
+            await database.execute(query=query)
     await database.disconnect()
