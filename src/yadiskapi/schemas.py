@@ -7,6 +7,14 @@ from typing import Any, List, Optional, Dict
 from pydantic import BaseModel, Field, validator
 
 
+def datetime_from_isoformat_helper(iso_datetime: str) -> datetime:
+    # python does not seem to understand last-Z as the synonim of +0 UTC
+    if iso_datetime[-1] == 'Z':
+        iso_datetime = iso_datetime[0:-1]
+        iso_datetime += '+00:00'
+    return datetime.fromisoformat(iso_datetime)
+
+
 @unique
 class SystemItemType(Enum):
     FILE = 'FILE'
