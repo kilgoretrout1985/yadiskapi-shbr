@@ -7,41 +7,6 @@ from databases.core import Connection
 from yadiskapi import schemas
 
 
-async def _folders_recount_stat(db: Connection) -> None:
-    """Пересчитываем размеры папок и их даты после добавления и удаления элементов"""
-    async with db.transaction():
-        query = """
-            WITH RECURSIVE cte AS (
-                SELECT id, "parentId", type, date,
-                       CASE WHEN type='FILE' THEN size ELSE 0 END AS size
-                    FROM items
-                UNION ALL
-                SELECT i2.id, i2."parentId", i2.type, GREATEST(cte.date, i2.date) as date,
-                       CASE WHEN i2.type='FILE' THEN i2.size + cte.size ELSE cte.size END AS size
-                    FROM cte
-                        INNER JOIN items i2 ON cte."parentId" = i2.id
-            )
-            SELECT id, "parentId", type, SUM(size) as new_size, MAX(date) as new_date
-                FROM cte
-                GROUP BY id, "parentId", type
-                HAVING cte.type = 'FOLDER';
-        """
-        # я не смог вытащить эти данные сразу в update, приходится пропускать
-        # через python
-        rows = await db.fetch_all(query=query)
-        values_all = []
-        for row in rows:
-            values_all.append({
-                'id': row['id'],
-                'new_size': int(row['new_size']),
-                'new_date': row['new_date']
-            })
-
-        for chunk in chunk_list(values_all, 1000):
-            query = "UPDATE items SET size=CAST(:new_size AS BIGINT), date=:new_date WHERE id=:id;"
-            await db.execute_many(query=query, values=chunk)
-
-
 async def bulk_create_items(db: Connection, items: List[schemas.SystemItemImport], date: datetime) -> bool:
     async with db.transaction():
         # all fk constraints (including the one on parentId)
@@ -98,15 +63,49 @@ async def delete_item(db: Connection, item_id: str) -> int:
         return result['cnt']  # type: ignore[no-any-return, index]
 
 
+async def _folders_recount_stat(db: Connection) -> None:
+    """Пересчитываем размеры папок и их даты после добавления и удаления элементов"""
+    async with db.transaction():
+        query = """
+            WITH RECURSIVE cte AS (
+                SELECT id, "parentId", type, date,
+                       CASE WHEN type='FILE' THEN size ELSE 0 END AS size
+                    FROM items
+                UNION ALL
+                SELECT i2.id, i2."parentId", i2.type, GREATEST(cte.date, i2.date) as date,
+                       CASE WHEN i2.type='FILE' THEN i2.size + cte.size ELSE cte.size END AS size
+                    FROM cte INNER JOIN items i2 ON cte."parentId" = i2.id
+            )
+            SELECT id, "parentId", type, SUM(size) as new_size, MAX(date) as new_date
+                FROM cte
+                GROUP BY id, "parentId", type
+                HAVING cte.type = 'FOLDER';
+        """
+        # я не смог вытащить эти данные сразу в update, приходится пропускать
+        # через python
+        rows = await db.fetch_all(query=query)
+        values_all = []
+        for row in rows:
+            values_all.append({
+                'id': row['id'],
+                'new_size': int(row['new_size']),
+                'new_date': row['new_date']
+            })
+
+        for chunk in chunk_list(values_all, 1000):
+            query = "UPDATE items SET size=CAST(:new_size AS BIGINT), date=:new_date WHERE id=:id;"
+            await db.execute_many(query=query, values=chunk)
+
+
 async def get_item(db: Connection, item_id: str) -> Union[schemas.SystemItem, None]:
     query = """
-        WITH RECURSIVE items_recur AS (
-            SELECT * FROM items i1
-                WHERE i1.id = :id
+        WITH RECURSIVE cte AS (
+            SELECT i1.id, i1.url, i1."parentId", i1.type, i1.size, i1.date
+                FROM items i1 WHERE i1.id = :id
             UNION
-            SELECT i2.* FROM items i2
-                INNER JOIN items_recur rec ON rec.id = i2."parentId"
-        ) SELECT * FROM items_recur;
+            SELECT i2.id, i2.url, i2."parentId", i2.type, i2.size, i2.date
+                FROM items i2 INNER JOIN cte rec ON rec.id = i2."parentId"
+        ) SELECT * FROM cte;
     """
     rows = await db.fetch_all(query=query, values={'id': item_id})
     if not rows:
