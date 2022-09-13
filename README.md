@@ -1,5 +1,5 @@
 ```
-python3 -m venv .env && \
+python3.10 -m venv .env && \
 source .env/bin/activate && \
 pip install -U pip && \
 pip install -e .[dev]
@@ -9,7 +9,7 @@ Run `tox` command to check your project setup. Everything should be green at thi
 point.
 
 ```
-cd src/yadiskapi && python main.py && uvicorn main:app --reload
+cd src/yadiskapi && python main.py && uvicorn main:app --reload --loop=uvloop
 ```
 
 `python main.py` is used to create initial db tables before first run. 

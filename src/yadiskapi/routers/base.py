@@ -2,13 +2,17 @@ from datetime import datetime
 from typing import Union
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import ORJSONResponse
 from databases.core import Connection
 
 from yadiskapi import schemas, crud
 from yadiskapi.database import get_db_conn
 
 
-router = APIRouter(tags=["Базовые задачи"])
+router = APIRouter(
+    tags=["Базовые задачи"], 
+    default_response_class=ORJSONResponse
+)
 
 
 @router.delete(

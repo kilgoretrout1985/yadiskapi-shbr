@@ -1,5 +1,6 @@
+uvicorn[standard]==0.18.3
 fastapi==0.82.0
 typer==0.6.1
-uvicorn==0.18.3
 databases[asyncpg]==0.6.1
 aiomisc==16.2.4
+orjson==3.8.0
