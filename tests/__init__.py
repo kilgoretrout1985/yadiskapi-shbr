@@ -4,6 +4,10 @@ from random import randint
 from uuid import uuid4
 
 
+def _datetime_to_string(dt: datetime) -> str:
+    return dt.replace(microsecond=0, tzinfo=None).isoformat() + 'Z'
+
+
 def _give_item_import(
     type: Union[str, None] = None,
     parent_id: Union[str, None] = None
@@ -33,7 +37,7 @@ def _give_item_import_batch(
     if added_timedelta is not None:
         moment_in_time = moment_in_time + added_timedelta
     batch = {
-        'updateDate': (moment_in_time - timedelta(days=2)).replace(microsecond=0, tzinfo=None).isoformat() + 'Z',
+        'updateDate': _datetime_to_string(moment_in_time - timedelta(days=2)),
         'items': [_give_item_import(type=type, parent_id=parent_id) for _ in range(size)]
     }
     return batch
