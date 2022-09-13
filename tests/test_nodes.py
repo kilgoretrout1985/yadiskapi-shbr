@@ -6,7 +6,7 @@ from . import _give_2_folder_tree_import_batch, _give_item_import_batch
 @pytest.mark.asyncio
 async def test_nodes_base_read(async_client):
     """
-    Получить информацию об элементе по идентификатору. При получении 
+    Получить информацию об элементе по идентификатору. При получении
     информации о папке также предоставляется информация о её дочерних элементах.
     """
     # /fld1/fld2/file1
@@ -33,32 +33,32 @@ async def test_nodes_different_children_representation(async_client):
     await async_client.post("/imports", json=batch)
     response = await async_client.get("/nodes/{}".format(batch['items'][0]['id']))
     assert response.status_code in range(200, 300)
-    assert response.json()['children'] == None
+    assert response.json()['children'] is None
 
 
 @pytest.mark.asyncio
 async def test_nodes_folder_size(async_client):
     """
-    Размер папки - это суммарный размер всех её элементов. 
+    Размер папки - это суммарный размер всех её элементов.
     Если папка не содержит элементов, то размер равен 0.
     """
     batch = _give_item_import_batch(1, type='FOLDER')
     await async_client.post("/imports", json=batch)
     folder_id = batch['items'][0]['id']
     folder_size = 0
-    
+
     response = await async_client.get("/nodes/{}".format(folder_id))
     assert response.json()['size'] == folder_size, "Empty folder must have size 0"
 
     for _ in range(2):
         await async_client.post(
-            "/imports", 
+            "/imports",
             json=_give_item_import_batch(1, type='FILE', parent_id=folder_id)
         )
         response = await async_client.get("/nodes/{}".format(folder_id))
         assert response.json()['size'] > folder_size, "Added file must increase folder size"
         folder_size += response.json()['size']
-    
+
 
 @pytest.mark.asyncio
 async def test_nodes_folder_size_change_on_file_size_change(async_client):
@@ -75,4 +75,3 @@ async def test_nodes_folder_size_change_on_file_size_change(async_client):
     assert file_size_initial != file_size_actual
     assert response.json()['size'] != file_size_initial
     assert response.json()['size'] == file_size_actual
-

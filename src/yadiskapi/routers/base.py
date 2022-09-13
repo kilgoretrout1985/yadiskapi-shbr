@@ -10,7 +10,7 @@ from yadiskapi.database import get_db_conn
 
 
 router = APIRouter(
-    tags=["Базовые задачи"], 
+    tags=["Базовые задачи"],
     default_response_class=ORJSONResponse
 )
 

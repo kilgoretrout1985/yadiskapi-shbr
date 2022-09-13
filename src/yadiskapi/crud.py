@@ -123,6 +123,6 @@ async def get_item(db: Connection, item_id: str) -> Union[schemas.SystemItem, No
         # вторая проверка нужна, т.к. мы можем выбирать sub-tree, где у нашего
         # root-item_id есть свой родитель, которого нет в этой выборке и нет в obj_map
         if obj.parentId is not None and obj.id != item_id:
-            obj_map[obj.parentId].children.append(obj)
+            obj_map[obj.parentId].children.append(obj)  # type: ignore[union-attr]
     # возвращаем клиенту только root-элемент запроса, остальное сделает pydantic
     return obj_map[item_id]

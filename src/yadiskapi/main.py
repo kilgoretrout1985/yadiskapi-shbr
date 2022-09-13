@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse
 from starlette import status
 from fastapi.responses import ORJSONResponse
 
-from yadiskapi.routers import base, additional
+from yadiskapi.routers import base
 from yadiskapi.config import settings
 from yadiskapi.database import get_db_conn, database
 
