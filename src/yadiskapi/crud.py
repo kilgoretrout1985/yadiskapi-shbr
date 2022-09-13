@@ -38,7 +38,7 @@ async def _folders_recount_stat(db: Connection) -> None:
             })
 
         for chunk in chunk_list(values_all, 1000):
-            query = "UPDATE items SET size=:new_size, date=:new_date WHERE id=:id;"
+            query = "UPDATE items SET size=CAST(:new_size AS BIGINT), date=:new_date WHERE id=:id;"
             await db.execute_many(query=query, values=chunk)
 
 
@@ -57,7 +57,7 @@ async def bulk_create_items(db: Connection, items: List[schemas.SystemItemImport
         # а потом во всех моделях, читаемых из БД, уже обязательно 0+
         query = """
             INSERT INTO items(id, url, "parentId", type, size, date)
-                VALUES (:id, :url, :parentId, :type, COALESCE(:size, 0), :date)
+                VALUES (:id, :url, :parentId, :type, COALESCE(CAST(:size AS BIGINT), 0), :date)
             ON CONFLICT (id) DO UPDATE
                 SET url = excluded.url,
                     "parentId" = excluded."parentId",

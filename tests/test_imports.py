@@ -216,3 +216,19 @@ async def test_import_folder_date_size_must_be_updated(async_client):
     assert new_dt == second_folder_dt
     assert response.json()['size'] > 0
     assert response.json()['size'] == response.json()['children'][0]['size']
+
+
+@pytest.mark.asyncio
+async def test_import_item_size_int64_max(async_client):
+    """В описании item указан максимальный тип int64."""
+    max_filesize = (2**63)-1  # signed
+    batch = _give_item_import_batch(1, type='FILE')
+    batch['items'][0]['size'] = max_filesize
+    item_id = batch['items'][0]['id']
+
+    response = await async_client.post("/imports", json=batch)
+    assert response.status_code in range(200, 300)
+
+    response = await async_client.get(f"/nodes/{item_id}")
+    assert response.status_code in range(200, 300)
+    assert response.json()['size'] == max_filesize
