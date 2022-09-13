@@ -57,10 +57,11 @@ async def delete_item(db: Connection, item_id: str) -> int:
                 DELETE FROM items WHERE id=:id RETURNING id
             ) SELECT COUNT(*) AS cnt FROM deleted;
         """
-        result = await db.fetch_one(query, values={"id": item_id})
-        await _folders_recount_stat(db)
         # в cnt считаются только удаленные нами напрямую записи, по факту получается 0 или 1
-        return result['cnt']  # type: ignore[no-any-return, index]
+        deleted = (await db.fetch_one(query, values={"id": item_id}))['cnt']  # type: ignore[index]
+        if deleted:
+            await _folders_recount_stat(db)
+        return deleted  # type: ignore[no-any-return]
 
 
 async def _folders_recount_stat(db: Connection) -> None:
