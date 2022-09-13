@@ -1,45 +1,10 @@
-from typing import Dict, Union, Any
-from uuid import uuid4
-from datetime import datetime, timedelta
-from random import randint
+from datetime import timedelta
 
 import pytest
 
 from yadiskapi.schemas import datetime_from_isoformat_helper
 
-
-def _give_item_import(
-    type: Union[str, None] = None,
-    parent_id: Union[str, None] = None
-) -> Dict[str, Any]:
-    """
-    Создает случайные элементы для тестов. Если нужны битые данные, нужно ломать полученное.
-    """
-    if type is None:
-        type = (['FILE', 'FOLDER'])[randint(0, 1)]
-    rand_id = str(uuid4())
-    return {
-        "id": rand_id,
-        "type": type,
-        "url": None if type == 'FOLDER' else "/file/" + rand_id,
-        "parentId": parent_id,
-        "size": None if type == 'FOLDER' else randint(2**4, 2**31),
-    }
-
-
-def _give_item_import_batch(
-    size: int = 0,
-    type: Union[str, None] = None,
-    added_timedelta: Union[timedelta, None] = None
-) -> Dict[str, Any]:
-    moment_in_time = datetime.now()
-    if added_timedelta is not None:
-        moment_in_time = moment_in_time + added_timedelta
-    batch = {
-        'updateDate': (moment_in_time - timedelta(days=2)).replace(microsecond=0, tzinfo=None).isoformat() + 'Z',
-        'items': [_give_item_import(type=type) for _ in range(size)]
-    }
-    return batch
+from . import _give_item_import, _give_item_import_batch
 
 
 @pytest.mark.asyncio
@@ -197,6 +162,10 @@ async def test_import_file_size_must_be_gt_zero(async_client):
     """Поле size для файлов всегда должно быть больше 0"""
     batch = _give_item_import_batch(1, type='FILE')
     batch['items'][0]['size'] = 0
+    response = await async_client.post("/imports", json=batch)
+    assert response.status_code in range(400, 500)
+
+    batch['items'][0]['size'] = -42
     response = await async_client.post("/imports", json=batch)
     assert response.status_code in range(400, 500)
 
