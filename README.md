@@ -60,7 +60,9 @@
 2)  Run your image:
     
     ```
-    docker run --name yadiskapi -d -p 80:80 -e DB_DSN="postgresql+asyncpg://yadiskapi:pass@172.17.0.1/yadiskapi" --restart unless-stopped yadiskapiimage
+    docker run --name yadiskapi -d -p 80:80 \
+        -e DB_DSN="postgresql+asyncpg://yadiskapi:pass@172.17.0.1/yadiskapi" \
+        --restart unless-stopped yadiskapiimage
     ```
 
     In case of errors change `-p 80:80` to something like `-p 8080:80` if port 
@@ -77,27 +79,36 @@
     docker build -t yadiskapiimage .
     ```
 
-2)  Run standart docker image of Postgres:
-    
+2)  Create a separate docker volume where all Postgres data 
+    will be actually stored. So this docker container is persistent between runs.
+
     ```
-    docker run --name dbyadiskapi -p 5432:5432 -e POSTGRES_USER=yadiskapi -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=yadiskapi -e PGDATA=/var/lib/postgresql/data/pgdata -d -v "$(pwd)":/var/lib/postgresql/data --restart unless-stopped  postgres:14.5
+    docker volume create yadiskapipgdata
     ```
 
-    Please note: this command will create `pgdata` dir in your current directory, 
-    where all postgresdb data is actually stored. So this docker container is
-    persistent between runs.
+3)  Run standart docker image of Postgres:
+    
+    ```
+    docker run --name yadiskapidb -d -p 5432:5432 \
+        -e POSTGRES_USER=yadiskapi -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=yadiskapi \
+        -e PGDATA=/var/lib/postgresql/data \
+        -v yadiskapipgdata:/var/lib/postgresql/data \
+        --restart unless-stopped postgres:14.5
+    ```
 
     If port 5432 is already taken on your machine, change it to something like
     `-p 25432:5432` and supply connect-dsn with corrected port to yadiskapi container
     on the next step.
 
-3)  Run your image:
+4)  Run your image:
     
     ```
-    docker run --name yadiskapi -d -p 80:80 -e DB_DSN="postgresql+asyncpg://yadiskapi:pass@172.17.0.1/yadiskapi" --restart unless-stopped  yadiskapiimage
+    docker run --name yadiskapi -d -p 80:80 \
+        -e DB_DSN="postgresql+asyncpg://yadiskapi:pass@172.17.0.1/yadiskapi" \
+        --restart unless-stopped yadiskapiimage
     ```
 
     In case of errors change `-p 80:80` to something like `-p 8080:80` if port 
     80 is already taken by another web-server on your machine.
 
-4)  Open [http://0.0.0.0:80/docs](http://0.0.0.0:80/docs) for interactive docs.
+5)  Open [http://0.0.0.0:80/docs](http://0.0.0.0:80/docs) for interactive docs.
