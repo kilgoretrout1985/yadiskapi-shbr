@@ -14,11 +14,4 @@ COPY ./src/yadiskapi /app/src/yadiskapi
 
 RUN pip install -e /app --no-cache-dir
 
-# For standart Docker for Linux, IP-address of the host will always be 172.17.0.1 
-# The easiest way to get it is `ifconfig docker0`.
-ENV DB_DSN postgresql+asyncpg://yadiskapi:pass@172.17.0.1/yadiskapi
-
 CMD ["sh", "-c", "python /app/src/yadiskapi/main.py && uvicorn src.yadiskapi.main:app --host 0.0.0.0 --port 80 --loop=uvloop --proxy-headers"]
-
-# docker build -t yadiskapiimage .
-# docker run -d -p 8080:80 yadiskapiimage

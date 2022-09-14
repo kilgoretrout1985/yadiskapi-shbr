@@ -141,3 +141,6 @@ dmypy.json
 # files created by unit_test.py
 expected.json
 response.json
+
+# for persistent docker container with postgres 
+pgdata

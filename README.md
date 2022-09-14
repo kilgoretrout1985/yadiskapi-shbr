@@ -1,4 +1,4 @@
-# Using virtualenv #
+# Run and test using virtualenv #
 
 1)  ```
     git clone https://github.com/kilgoretrout1985/yadiskapi-shbr.git && \
@@ -39,17 +39,65 @@
 
 5)  Open [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) for interactive docs.
 
-# In a docker container using your local Postgres #
 
-1) Edit `Dockerfile` for correct Postgres dsn like:
+# Run in a docker container using your Postgres #
 
+1)  Build image:
+    
     ```
-    ENV DB_DSN postgresql+asyncpg://yadiskapi:pass@172.17.0.1/yadiskapi
-    ```
-
-2)  ```
     docker build -t yadiskapiimage .
-    docker run -d -p 8080:80 yadiskapiimage
     ```
 
-4) Open [http://0.0.0.0:8080/docs](http://0.0.0.0:8080/docs) for interactive docs.
+2)  Find out your correct Postgres dsn, like:
+    
+    ```
+    postgresql+asyncpg://yadiskapi:pass@172.17.0.1/yadiskapi
+    ```
+
+    For standart Docker for Linux, IP-address **of the host** most likely will 
+    be 172.17.0.1. The easiest way to get it is `ifconfig docker0`.
+
+2)  Run your image:
+    
+    ```
+    docker run --name yadiskapi -d -p 80:80 -e DB_DSN="postgresql+asyncpg://yadiskapi:pass@172.17.0.1/yadiskapi" --restart unless-stopped yadiskapiimage
+    ```
+
+    In case of errors change `-p 80:80` to something like `-p 8080:80` if port 
+    80 is already taken by another web-server on your machine.
+
+4)  Open [http://0.0.0.0:80/docs](http://0.0.0.0:80/docs) for interactive docs.
+
+
+# Run in a docker container using Postgres from docker container #
+
+1)  Build your image:
+    
+    ```
+    docker build -t yadiskapiimage .
+    ```
+
+2)  Run standart docker image of Postgres:
+    
+    ```
+    docker run --name dbyadiskapi -p 5432:5432 -e POSTGRES_USER=yadiskapi -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=yadiskapi -e PGDATA=/var/lib/postgresql/data/pgdata -d -v "$(pwd)":/var/lib/postgresql/data --restart unless-stopped  postgres:14.5
+    ```
+
+    Please note: this command will create `pgdata` dir in your current directory, 
+    where all postgresdb data is actually stored. So this docker container is
+    persistent between runs.
+
+    If port 5432 is already taken on your machine, change it to something like
+    `-p 25432:5432` and supply connect-dsn with corrected port to yadiskapi container
+    on the next step.
+
+3)  Run your image:
+    
+    ```
+    docker run --name yadiskapi -d -p 80:80 -e DB_DSN="postgresql+asyncpg://yadiskapi:pass@172.17.0.1/yadiskapi" --restart unless-stopped  yadiskapiimage
+    ```
+
+    In case of errors change `-p 80:80` to something like `-p 8080:80` if port 
+    80 is already taken by another web-server on your machine.
+
+4)  Open [http://0.0.0.0:80/docs](http://0.0.0.0:80/docs) for interactive docs.
