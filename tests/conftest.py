@@ -20,7 +20,7 @@ def event_loop(request) -> Generator:  # type: ignore[type-arg]
     loop.close()
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def async_client():
     """
     Тестовый клиент, который может работать с приложением через asgi,
