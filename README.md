@@ -40,12 +40,22 @@
 5)  Open [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) for interactive docs.
 
 
+# Run with docker-compose #
+
+1)  Run:
+    ```
+    docker-compose up -d
+    ```
+
+2)  Open [http://0.0.0.0:80/docs](http://0.0.0.0:80/docs) for interactive docs.
+
+
 # Run in a docker container using your Postgres #
 
 1)  Build image:
     
     ```
-    docker build -t yadiskapiimage .
+    docker build -t yadiskapi-image .
     ```
 
 2)  Find out your correct Postgres dsn, like:
@@ -62,7 +72,7 @@
     ```
     docker run --name yadiskapi -d -p 80:80 \
         -e DB_DSN="postgresql+asyncpg://yadiskapi:pass@172.17.0.1/yadiskapi" \
-        --restart unless-stopped yadiskapiimage
+        --restart unless-stopped yadiskapi-image
     ```
 
     In case of errors change `-p 80:80` to something like `-p 8080:80` if port 
@@ -76,23 +86,23 @@
 1)  Build your image:
     
     ```
-    docker build -t yadiskapiimage .
+    docker build -t yadiskapi-image .
     ```
 
 2)  Create a separate docker volume where all Postgres data 
     will be actually stored. So this docker container is persistent between runs.
 
     ```
-    docker volume create yadiskapipgdata
+    docker volume create yadiskapi-pgdata
     ```
 
 3)  Run standart docker image of Postgres:
     
     ```
-    docker run --name yadiskapidb -d -p 5432:5432 \
+    docker run --name yadiskapi-db -d -p 5432:5432 \
         -e POSTGRES_USER=yadiskapi -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=yadiskapi \
         -e PGDATA=/var/lib/postgresql/data \
-        -v yadiskapipgdata:/var/lib/postgresql/data \
+        -v yadiskapi-pgdata:/var/lib/postgresql/data \
         --restart unless-stopped postgres:14.5
     ```
 
@@ -105,7 +115,7 @@
     ```
     docker run --name yadiskapi -d -p 80:80 \
         -e DB_DSN="postgresql+asyncpg://yadiskapi:pass@172.17.0.1/yadiskapi" \
-        --restart unless-stopped yadiskapiimage
+        --restart unless-stopped yadiskapi-image
     ```
 
     In case of errors change `-p 80:80` to something like `-p 8080:80` if port 
