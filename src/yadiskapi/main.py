@@ -8,7 +8,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse, JSONResponse
 from starlette import status
 
-from yadiskapi.routers import base
+from yadiskapi.routers import base, additional
 from yadiskapi.config import settings
 from yadiskapi.database import get_db_conn, database
 from yadiskapi import schemas
@@ -21,7 +21,7 @@ app = FastAPI(
     default_response_class=ORJSONResponse
 )
 app.include_router(base.router)
-# app.include_router(additional.router)
+app.include_router(additional.router)
 
 
 @app.on_event("startup")

@@ -1,4 +1,4 @@
-from typing import Union
+from typing import AsyncGenerator, Union
 from sys import modules
 
 from databases import Database
@@ -33,7 +33,7 @@ def configure_database(my_force_rollback: Union[None, bool] = None) -> Database:
 database = configure_database()
 
 
-async def get_db_conn() -> Connection:  # type: ignore[misc]
+async def get_db_conn() -> AsyncGenerator[Connection, None]:
     async with database.connection() as db_con:
         yield db_con
 
@@ -52,6 +52,7 @@ async def init_models(delete_all=False):
     async with one_time_db_conn.connection() as conn:
         async with conn.transaction():
             if delete_all:
+                await conn.execute(query="DROP TABLE IF EXISTS items_history;")
                 await conn.execute(query="DROP TABLE IF EXISTS items;")
                 await conn.execute(query="DROP TYPE IF EXISTS type;")
 
@@ -86,4 +87,26 @@ async def init_models(delete_all=False):
             await one_time_db_conn.execute(query=query)
             query = """CREATE INDEX IF NOT EXISTS items_parentId_fkey_idx ON items ("parentId");"""
             await one_time_db_conn.execute(query=query)
+
+            query = """
+                CREATE TABLE IF NOT EXISTS items_history
+                (
+                    id character varying NOT NULL,
+                    url character varying(255),
+                    "parentId" character varying,
+                    type type NOT NULL,
+                    size bigint,
+                    date timestamp with time zone NOT NULL,
+                    CONSTRAINT items_history_pkey PRIMARY KEY (id, date),
+                    CONSTRAINT items_history_id_fkey FOREIGN KEY (id)
+                        REFERENCES items (id) MATCH SIMPLE
+                        ON UPDATE CASCADE
+                        ON DELETE CASCADE
+                        DEFERRABLE INITIALLY IMMEDIATE
+                );
+            """
+            await one_time_db_conn.execute(query=query)
+            query = """CREATE INDEX IF NOT EXISTS items_date_idx ON items_history (date);"""
+            await one_time_db_conn.execute(query=query)
+
     await one_time_db_conn.disconnect()

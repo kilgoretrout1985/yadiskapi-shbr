@@ -13,7 +13,8 @@ def _give_item_import(
     parent_id: Union[str, None] = None
 ) -> Dict[str, Any]:
     """
-    Создает случайные элементы для тестов. Если нужны битые данные, нужно ломать полученное.
+    Создает случайные элементы для тестов. Если нужны битые данные, нужно
+    ломать полученное.
     """
     if type is None:
         type = (['FILE', 'FOLDER'])[randint(0, 1)]
@@ -23,12 +24,13 @@ def _give_item_import(
         "type": type,
         "url": None if type == 'FOLDER' else "/file/" + rand_id,
         "parentId": parent_id,
-        "size": None if type == 'FOLDER' else randint(2**4, 2**31),
+        "size": None if type == 'FOLDER' else randint(2**4, 2**16),
     }
 
 
 def _give_item_import_batch(
     size: int = 0,
+    *,
     type: Union[str, None] = None,
     parent_id: Union[str, None] = None,
     added_timedelta: Union[timedelta, None] = None

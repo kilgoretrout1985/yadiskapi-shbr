@@ -21,13 +21,19 @@ async def bulk_create_items(db: Connection, items: List[schemas.SystemItemImport
         # COALESCE тк при импорте папок size обязательно null и это надо валидировать,
         # а потом во всех моделях, читаемых из БД, уже обязательно 0+
         query = """
-            INSERT INTO items(id, url, "parentId", type, size, date)
-                VALUES (:id, :url, :parentId, :type, COALESCE(CAST(:size AS BIGINT), 0), :date)
-            ON CONFLICT (id) DO UPDATE
-                SET url = excluded.url,
-                    "parentId" = excluded."parentId",
-                    size = excluded.size,
-                    date = excluded.date;
+            WITH changed_item as (
+                INSERT INTO items(id, url, "parentId", type, size, date)
+                    VALUES (:id, :url, :parentId, :type, COALESCE(CAST(:size AS BIGINT), 0), :date)
+                ON CONFLICT (id) DO UPDATE
+                    SET url = excluded.url,
+                        "parentId" = excluded."parentId",
+                        size = excluded.size,
+                        date = excluded.date
+                RETURNING *
+            )
+            INSERT INTO items_history(id, url, "parentId", type, size, date)
+                SELECT id, url, "parentId", type, size, date FROM changed_item
+            ON CONFLICT (id, date) DO NOTHING;
         """
         for chunk in chunk_list(items, 1000):
             values = []
@@ -126,3 +132,48 @@ async def get_item(db: Connection, item_id: str) -> Union[schemas.SystemItem, No
             obj_map[obj.parentId].children.append(obj)  # type: ignore[union-attr]
     # возвращаем клиенту только root-элемент запроса, остальное сделает pydantic
     return obj_map[item_id]
+
+
+async def get_item_history(
+    db: Connection, item_id: str, date_start: Union[datetime, None],
+    date_end: Union[datetime, None]
+) -> schemas.SystemItemHistoryResponse:
+    query = """
+        SELECT id, url, "parentId", type, size, date
+            FROM items_history
+                WHERE id = :id {} {};
+    """.format(
+        'AND date >= :date_start' if date_start is not None else '',
+        'AND date < :date_end' if date_end is not None else ''
+    )
+    values: Dict[str, Union[str, datetime]] = {'id': item_id}
+    if date_start is not None:
+        values['date_start'] = date_start
+    if date_end is not None:
+        values['date_end'] = date_end
+
+    rows = await db.fetch_all(query=query, values=values)
+    history_response = schemas.SystemItemHistoryResponse()
+    for row in rows:
+        history_response.items.append(
+            schemas.SystemItemHistoryUnit(**dict(row))
+        )
+    return history_response
+
+
+async def get_history_daterange(
+    db: Connection, date_start: datetime, date_end: datetime
+) -> schemas.SystemItemHistoryResponse:
+    # Без сортировки, в описании модели указано: история в произвольном порядке.
+    query = """
+        SELECT id, url, "parentId", type, size, date
+            FROM items_history
+                WHERE date >= :date_start AND date <= :date_end AND type = 'FILE';
+    """
+    rows = await db.fetch_all(query=query, values={'date_start': date_start, 'date_end': date_end})
+    history_response = schemas.SystemItemHistoryResponse()
+    for row in rows:
+        history_response.items.append(
+            schemas.SystemItemHistoryUnit(**dict(row))
+        )
+    return history_response
