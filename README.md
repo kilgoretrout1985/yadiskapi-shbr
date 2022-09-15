@@ -27,6 +27,7 @@
     ```
 
 3)  Run `tox` or `pytest` to test your setup. Everything should be green at this point.
+    You can also run `locust` for load testing.
 
 4)  Run web-server with this command:
     ```
